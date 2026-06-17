@@ -1,6 +1,6 @@
 import type { Player } from "../player";
-import type { CollectibleKind, ObstacleKind, RunnerEntity } from "../types";
-import { COLLECTIBLE_COLOR, COLLECTIBLE_ICON, OBSTACLE_ACTION, OBSTACLE_COLOR, OBSTACLE_ICON, POWERUP_ICON } from "./icons";
+import type { CollectibleKind, ObstacleKind, PowerUpKind, RunnerEntity } from "../types";
+import { COLLECTIBLE_COLOR, COLLECTIBLE_ICON, OBSTACLE_ACTION, OBSTACLE_COLOR, OBSTACLE_ICON, POWERUP_COLOR, POWERUP_ICON } from "./icons";
 import { laneScreenX } from "./perspective";
 
 function iconFor(e: RunnerEntity): string {
@@ -126,11 +126,14 @@ export function drawEntities(ctx: CanvasRenderingContext2D, entities: RunnerEnti
     }
 
     if (grabbable) {
-      // welcoming ground ring: green pulse, the inviting opposite of the
-      // obstacles' red hazard tape, so "safe to grab" reads instantly
+      // welcoming ground ring: the inviting opposite of the obstacles' red
+      // hazard tape, so "safe to grab" reads instantly. Collectibles all
+      // share one green so they read as a single "pickup" family; power-ups
+      // use their own POWERUP_COLOR per kind so each one is distinguishable.
+      const ringColor = e.type === "powerup" ? POWERUP_COLOR[e.kind as PowerUpKind] : "#4ade80";
       ctx.save();
       ctx.globalAlpha *= 0.5 + Math.sin(t * 6 + e.bobPhase) * 0.2;
-      ctx.strokeStyle = "#4ade80";
+      ctx.strokeStyle = ringColor;
       ctx.lineWidth = 3;
       ctx.beginPath();
       ctx.ellipse(x, y + 4, size * 0.4, size * 0.14, 0, 0, Math.PI * 2);
@@ -170,9 +173,15 @@ export function drawEntities(ctx: CanvasRenderingContext2D, entities: RunnerEnti
     }
 
     if (e.type === "powerup") {
+      // per-kind tinted glow (mirrors the collectible glow above) so each
+      // power-up's color identity carries from the ground ring into the badge
       ctx.save();
-      ctx.globalAlpha *= 0.5 + Math.sin(t * 8) * 0.2;
-      ctx.fillStyle = "#fff7c2";
+      ctx.globalAlpha *= 0.55 + Math.sin(t * 8) * 0.2;
+      const puColor = POWERUP_COLOR[e.kind as PowerUpKind];
+      const glow = ctx.createRadialGradient(x, y - size * 0.3, 0, x, y - size * 0.3, size * 0.7);
+      glow.addColorStop(0, puColor + "cc");
+      glow.addColorStop(1, puColor + "00");
+      ctx.fillStyle = glow;
       ctx.beginPath();
       ctx.arc(x, y - size * 0.3, size * 0.7, 0, Math.PI * 2);
       ctx.fill();

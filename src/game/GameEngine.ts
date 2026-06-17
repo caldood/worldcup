@@ -17,8 +17,10 @@ import { Player } from "./player";
 import { drawStadiumBackground, drawVignette } from "./render/background";
 import {
   drawBall,
+  drawCountdownBar,
   drawDefenderDuel,
   drawGoalFrame,
+  drawInstructionBanner,
   drawKeeper,
   drawTargetZones,
   outcomeLabel,
@@ -721,6 +723,18 @@ export class GameEngine {
       this.renderBreakaway(t);
     }
     ctx.restore();
+
+    // Instructional overlay is drawn outside the zoomed camera transform so
+    // it stays pinned to the top of the screen instead of being pushed
+    // off-frame by the breakaway camera zoom.
+    const b = this.breakaway;
+    if (this.phase === "breakawayBeat" && b.beat.promptDir && !b.beat.resolved) {
+      drawInstructionBanner(ctx, "DEFENDER CLOSING IN!", "Swipe ⬅️ or ➡️ to match the lit side");
+      drawCountdownBar(ctx, Math.max(0, b.beat.windowT / b.beat.windowMax));
+    } else if (this.phase === "breakawayShoot" && !b.shoot.chosenDir) {
+      drawInstructionBanner(ctx, "TAKE THE SHOT!", "Swipe toward a glowing corner to aim there");
+      drawCountdownBar(ctx, Math.max(0, b.shoot.windowT / b.shoot.windowMax));
+    }
 
     this.particles.draw(ctx);
     drawVignette(ctx);

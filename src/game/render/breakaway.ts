@@ -69,6 +69,17 @@ export function drawKeeper(ctx: CanvasRenderingContext2D, divDir: ShootDir | nul
   ctx.restore();
 }
 
+// Glyph for the swipe gesture that aims at each zone — matches SwipeInput's
+// classify5() exactly (swipe up-left -> topLeft, etc.) so the on-screen hint
+// is literally the gesture the player needs to make.
+const ZONE_GLYPH: Record<ShootDir, string> = {
+  topLeft: "↖",
+  topRight: "↗",
+  bottomLeft: "↙",
+  bottomRight: "↘",
+  center: "●",
+};
+
 export function drawTargetZones(
   ctx: CanvasRenderingContext2D,
   highlight: ShootDir | null,
@@ -77,14 +88,69 @@ export function drawTargetZones(
   for (const key of Object.keys(ZONE_POS) as ShootDir[]) {
     const p = ZONE_POS[key];
     const isHi = highlight === key;
+    const r = isHi ? 24 : 18;
     ctx.save();
-    ctx.globalAlpha = isHi ? 0.55 + Math.sin(pulseT * 10) * 0.25 : 0.18;
-    ctx.fillStyle = isHi ? "#facc15" : "#ffffff";
+    ctx.globalAlpha = isHi ? 0.6 + Math.sin(pulseT * 10) * 0.25 : 0.4;
+    ctx.fillStyle = isHi ? "#facc15" : "rgba(255,255,255,0.25)";
     ctx.beginPath();
-    ctx.arc(p.x, p.y, isHi ? 22 : 14, 0, Math.PI * 2);
+    ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
     ctx.fill();
+    ctx.strokeStyle = isHi ? "#facc15" : "rgba(255,255,255,0.75)";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.restore();
+
+    // gesture glyph so the zone itself teaches the swipe needed to hit it
+    ctx.save();
+    ctx.globalAlpha = isHi ? 1 : 0.9;
+    ctx.fillStyle = isHi ? "#111827" : "#ffffff";
+    ctx.font = `bold ${isHi ? 22 : 16}px sans-serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(ZONE_GLYPH[key], p.x, p.y);
     ctx.restore();
   }
+}
+
+// Persistent top banner explaining the current prompt — unlike floating
+// particle text this doesn't drift or fade, so it stays legible the whole
+// time a phase is waiting on input.
+export function drawInstructionBanner(ctx: CanvasRenderingContext2D, title: string, sub: string) {
+  const w = CANVAS_W * 0.88;
+  const cx = CANVAS_W / 2;
+  const y = 96;
+  ctx.save();
+  ctx.fillStyle = "rgba(15, 23, 42, 0.6)";
+  ctx.beginPath();
+  ctx.roundRect(cx - w / 2, y - 24, w, 48, 14);
+  ctx.fill();
+  ctx.fillStyle = "#facc15";
+  ctx.font = "bold 19px sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(title, cx, y - 5);
+  ctx.fillStyle = "rgba(255,255,255,0.9)";
+  ctx.font = "13px sans-serif";
+  ctx.fillText(sub, cx, y + 15);
+  ctx.restore();
+}
+
+// Shrinking bar showing how much time is left to react — so the countdown
+// is legible without staring at a single small ring.
+export function drawCountdownBar(ctx: CanvasRenderingContext2D, progress: number) {
+  const w = CANVAS_W * 0.6;
+  const x = CANVAS_W / 2 - w / 2;
+  const y = 132;
+  ctx.save();
+  ctx.fillStyle = "rgba(255,255,255,0.25)";
+  ctx.beginPath();
+  ctx.roundRect(x, y, w, 7, 4);
+  ctx.fill();
+  ctx.fillStyle = progress < 0.3 ? "#ef4444" : "#facc15";
+  ctx.beginPath();
+  ctx.roundRect(x, y, w * Math.max(0, progress), 7, 4);
+  ctx.fill();
+  ctx.restore();
 }
 
 export function drawBall(ctx: CanvasRenderingContext2D, x: number, y: number, scale: number) {
@@ -119,6 +185,30 @@ export function drawDefenderDuel(
 ) {
   const cx = CANVAS_W / 2;
   const cy = CANVAS_H * 0.56;
+
+  // dodge-lane indicators: same "lit zone = swipe here" language as the
+  // shoot-phase target zones, so both halves of the minigame teach the same
+  // mechanic — the side that matches the prompt glows, the other stays dim.
+  if (promptDir && !resolved) {
+    for (const side of ["left", "right"] as const) {
+      const isHi = side === promptDir;
+      const sx = side === "left" ? cx - 110 : cx + 110;
+      ctx.save();
+      ctx.globalAlpha = isHi ? 0.55 + Math.sin(windowT * 20) * 0.25 : 0.15;
+      ctx.fillStyle = isHi ? "#facc15" : "#ffffff";
+      ctx.beginPath();
+      ctx.roundRect(sx - 26, cy - 70, 52, 110, 16);
+      ctx.fill();
+      ctx.restore();
+      ctx.save();
+      ctx.globalAlpha = isHi ? 1 : 0.35;
+      ctx.font = "30px sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(side === "left" ? "⬅️" : "➡️", sx, cy - 15);
+      ctx.restore();
+    }
+  }
 
   // defender
   ctx.save();

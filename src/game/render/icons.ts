@@ -47,6 +47,16 @@ export const POWERUP_LABEL: Record<PowerUpKind, string> = {
   hatTrick: "Hat Trick Multiplier",
 };
 
+// Distinct per-kind hue so each power-up reads as its own thing at a glance,
+// mirroring OBSTACLE_COLOR/COLLECTIBLE_COLOR — used for both the glow and ring.
+export const POWERUP_COLOR: Record<PowerUpKind, string> = {
+  rocketBoots: "#fb923c",
+  goldenMagnet: "#fbbf24",
+  varShield: "#38bdf8",
+  momentumMode: "#f87171",
+  hatTrick: "#c084fc",
+};
+
 export const COLLECTIBLE_ICON: Record<CollectibleKind, string> = {
   capital: "🪙",
   alpha: "💎",
