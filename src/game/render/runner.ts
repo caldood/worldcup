@@ -27,8 +27,13 @@ export function drawEntities(ctx: CanvasRenderingContext2D, entities: RunnerEnti
 
       // ground marker ring, pulses faster and brighter the closer the obstacle gets
       ctx.save();
-      const pulse = close ? 0.55 + Math.sin(t * 14) * 0.35 : 0.4;
+      const pulse = close ? 0.65 + Math.sin(t * 14) * 0.35 : 0.5;
       ctx.globalAlpha *= pulse;
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = close ? 5.5 : 3.5;
+      ctx.beginPath();
+      ctx.ellipse(x, y + 6, size * 0.46, size * 0.16, 0, 0, Math.PI * 2);
+      ctx.stroke();
       ctx.strokeStyle = color;
       ctx.lineWidth = close ? 3.5 : 2;
       ctx.beginPath();
@@ -38,13 +43,14 @@ export function drawEntities(ctx: CanvasRenderingContext2D, entities: RunnerEnti
 
       // colored danger halo behind the icon for instant kind recognition
       ctx.save();
-      ctx.globalAlpha *= 0.45;
-      const halo = ctx.createRadialGradient(x, y - size * 0.32, 0, x, y - size * 0.32, size * 0.75);
-      halo.addColorStop(0, color + "cc");
+      ctx.globalAlpha *= 0.6;
+      const halo = ctx.createRadialGradient(x, y - size * 0.32, 0, x, y - size * 0.32, size * 0.8);
+      halo.addColorStop(0, color + "ee");
+      halo.addColorStop(0.55, color + "88");
       halo.addColorStop(1, color + "00");
       ctx.fillStyle = halo;
       ctx.beginPath();
-      ctx.arc(x, y - size * 0.32, size * 0.75, 0, Math.PI * 2);
+      ctx.arc(x, y - size * 0.32, size * 0.8, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
 
@@ -111,25 +117,74 @@ export function drawPlayer(ctx: CanvasRenderingContext2D, player: Player, lanesX
 
   const runBob = player.anim === "run" ? Math.sin(player.bob) * 4 : 0;
   const lean = player.anim === "stumble" ? Math.sin(player.bob * 2) * 0.3 : 0;
+  const swing = player.anim === "run" ? Math.sin(player.bob) : 0;
+  const stumbling = player.anim === "stumble";
 
   ctx.save();
   ctx.rotate(lean);
   ctx.translate(0, runBob);
 
-  // body (jersey)
-  ctx.fillStyle = player.anim === "stumble" ? "#ef4444" : "#fbbf24";
-  ctx.beginPath();
-  ctx.roundRect(-15, -48, 30, 38, 8);
-  ctx.fill();
-
-  // shorts
-  ctx.fillStyle = "#1d4ed8";
-  ctx.fillRect(-14, -14, 28, 14);
-
-  // legs
+  // arms (drawn behind the jersey so the swing reads as alternating front/back)
   ctx.fillStyle = "#fcd9b8";
-  ctx.fillRect(-10, 0, 8, 16);
-  ctx.fillRect(2, 0, 8, 16);
+  ctx.save();
+  ctx.translate(-15, -42);
+  ctx.rotate(swing * 0.7);
+  ctx.fillRect(-3, 0, 6, 22);
+  ctx.restore();
+  ctx.save();
+  ctx.translate(15, -42);
+  ctx.rotate(-swing * 0.7);
+  ctx.fillRect(-3, 0, 6, 22);
+  ctx.restore();
+
+  // legs (alternating stride)
+  ctx.fillStyle = "#fcd9b8";
+  ctx.save();
+  ctx.translate(-6, -2);
+  ctx.rotate(swing * 0.5);
+  ctx.fillRect(-4, 0, 8, 16);
+  ctx.restore();
+  ctx.save();
+  ctx.translate(6, -2);
+  ctx.rotate(-swing * 0.5);
+  ctx.fillRect(-4, 0, 8, 16);
+  ctx.restore();
+
+  // body (USA jersey)
+  if (stumbling) {
+    ctx.fillStyle = "#ef4444";
+    ctx.beginPath();
+    ctx.roundRect(-15, -48, 30, 38, 8);
+    ctx.fill();
+  } else {
+    ctx.save();
+    ctx.beginPath();
+    ctx.roundRect(-15, -48, 30, 38, 8);
+    ctx.clip();
+    ctx.fillStyle = "#f8fafc";
+    ctx.fillRect(-15, -48, 30, 38);
+    // navy shoulder/sleeve trim
+    ctx.fillStyle = "#0a3161";
+    ctx.fillRect(-15, -48, 7, 14);
+    ctx.fillRect(8, -48, 7, 14);
+    // red chest stripe
+    ctx.fillStyle = "#b31942";
+    ctx.fillRect(-15, -26, 30, 6);
+    ctx.restore();
+    // navy star emblem
+    ctx.fillStyle = "#0a3161";
+    ctx.font = "10px sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("★", 0, -38);
+  }
+
+  // shorts (navy with red side stripe)
+  ctx.fillStyle = "#0a3161";
+  ctx.fillRect(-14, -14, 28, 14);
+  ctx.fillStyle = "#b31942";
+  ctx.fillRect(-14, -14, 3, 14);
+  ctx.fillRect(11, -14, 3, 14);
 
   // head
   ctx.fillStyle = "#fcd9b8";

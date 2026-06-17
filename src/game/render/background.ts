@@ -67,6 +67,31 @@ export function drawVignette(ctx: CanvasRenderingContext2D) {
   ctx.restore();
 }
 
+// Horizontal yard-line bands sweeping toward the camera to sell a sense of forward speed.
+function drawSpeedLines(ctx: CanvasRenderingContext2D, t: number) {
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(0, HORIZON_Y, CANVAS_W, CANVAS_H - HORIZON_Y);
+  ctx.clip();
+  const vx = CANVAS_W / 2;
+  const lineCount = 6;
+  const speed = 0.5;
+  for (let i = 0; i < lineCount; i++) {
+    const p = ((i / lineCount + t * speed) % 1 + 1) % 1;
+    const depth = p * p;
+    const y = HORIZON_Y + (CANVAS_H - HORIZON_Y) * depth;
+    const halfWidth = (CANVAS_W * 0.55) * depth;
+    ctx.globalAlpha = 0.18 * depth;
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 1 + depth * 2;
+    ctx.beginPath();
+    ctx.moveTo(vx - halfWidth, y);
+    ctx.lineTo(vx + halfWidth, y);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
 export function drawStadiumBackground(ctx: CanvasRenderingContext2D, t: number, flash: number) {
   const sky = ctx.createLinearGradient(0, 0, 0, HORIZON_Y + 40);
   sky.addColorStop(0, "#3fa9f5");
@@ -139,6 +164,8 @@ export function drawStadiumBackground(ctx: CanvasRenderingContext2D, t: number, 
     ctx.fill();
   }
   ctx.restore();
+
+  drawSpeedLines(ctx, t);
 
   // lane guide lines (subtle white)
   ctx.save();

@@ -20,15 +20,15 @@ export const OBSTACLE_LABEL: Record<ObstacleKind, string> = {
   barrier: "Security Barrier",
 };
 
-// Distinct hue per obstacle so each kind reads instantly at a glance, independent of icon shape.
+// Distinct, highly-saturated hue per obstacle, chosen to pop against the green pitch.
 export const OBSTACLE_COLOR: Record<ObstacleKind, string> = {
-  defender: "#ff4d4f",
+  defender: "#ff3b3b",
   slidingTackle: "#ff8c1a",
-  referee: "#ffd60a",
-  cone: "#ff7a3d",
-  cart: "#a0a8b8",
-  varCamera: "#7b5cff",
-  barrier: "#ff2d6b",
+  referee: "#ffe000",
+  cone: "#ff5e1a",
+  cart: "#2f8dff",
+  varCamera: "#a855f7",
+  barrier: "#ff2d8a",
 };
 
 export const POWERUP_ICON: Record<PowerUpKind, string> = {
