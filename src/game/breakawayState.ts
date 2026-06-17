@@ -42,7 +42,7 @@ export function freshBreakawayState(): BreakawayState {
     },
     shoot: {
       windowT: 0,
-      windowMax: 1.3,
+      windowMax: 2.6,
       chosenDir: null,
       keeperDir: null,
       diveT: 0,

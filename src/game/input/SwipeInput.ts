@@ -1,7 +1,7 @@
 import { SWIPE_MAX_TIME, SWIPE_MIN_DISTANCE } from "../constants";
 import type { ShootDir, SwipeDir } from "../types";
 
-export type SwipeMode = "fourWay" | "fiveWay";
+export type SwipeMode = "fourWay" | "threeWay";
 
 interface PointerState {
   x: number;
@@ -14,7 +14,7 @@ export class SwipeInput {
   private start: PointerState | null = null;
   private mode: SwipeMode = "fourWay";
   onSwipe4: ((dir: SwipeDir) => void) | null = null;
-  onSwipe5: ((dir: ShootDir, dx: number, dy: number) => void) | null = null;
+  onSwipe3: ((dir: ShootDir) => void) | null = null;
   onTap: (() => void) | null = null;
 
   constructor(el: HTMLElement) {
@@ -74,16 +74,17 @@ export class SwipeInput {
 
     if (dt > SWIPE_MAX_TIME * 3) return;
 
+    if (this.mode === "threeWay") {
+      this.onSwipe3?.(this.classify3(dx, dist));
+      return;
+    }
+
     if (dist < SWIPE_MIN_DISTANCE) {
       this.onTap?.();
       return;
     }
 
-    if (this.mode === "fourWay") {
-      this.onSwipe4?.(this.classify4(dx, dy));
-    } else {
-      this.onSwipe5?.(this.classify5(dx, dy), dx, dy);
-    }
+    this.onSwipe4?.(this.classify4(dx, dy));
   }
 
   private classify4(dx: number, dy: number): SwipeDir {
@@ -93,12 +94,11 @@ export class SwipeInput {
     return dy > 0 ? "down" : "up";
   }
 
-  private classify5(dx: number, dy: number): ShootDir {
-    const dist = Math.hypot(dx, dy);
+  // tap or short nudge -> shoot straight down the middle; a clear sideways
+  // swipe picks the near post on that side, matching the on-screen left/
+  // center/right zones exactly.
+  private classify3(dx: number, dist: number): ShootDir {
     if (dist < SWIPE_MIN_DISTANCE * 1.4) return "center";
-    if (dy < 0) {
-      return dx >= 0 ? "topRight" : "topLeft";
-    }
-    return dx >= 0 ? "bottomRight" : "bottomLeft";
+    return dx >= 0 ? "right" : "left";
   }
 }

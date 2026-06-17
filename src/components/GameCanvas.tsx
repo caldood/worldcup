@@ -32,10 +32,6 @@ export function GameCanvas({ onEngineReady }: Props) {
   }, []);
 
   return (
-    <canvas
-      ref={canvasRef}
-      className="game-canvas"
-      style={{ width: CANVAS_W, height: CANVAS_H, touchAction: "none" }}
-    />
+    <canvas ref={canvasRef} className="game-canvas" style={{ touchAction: "none" }} />
   );
 }

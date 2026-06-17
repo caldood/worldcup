@@ -4,11 +4,9 @@ import type { ShootDir, SwipeDir } from "../types";
 import { HORIZON_Y } from "./perspective";
 
 const ZONE_POS: Record<ShootDir, { x: number; y: number }> = {
-  topLeft: { x: CANVAS_W * 0.28, y: HORIZON_Y + 30 },
-  topRight: { x: CANVAS_W * 0.72, y: HORIZON_Y + 30 },
-  bottomLeft: { x: CANVAS_W * 0.28, y: HORIZON_Y + 92 },
-  bottomRight: { x: CANVAS_W * 0.72, y: HORIZON_Y + 92 },
-  center: { x: CANVAS_W * 0.5, y: HORIZON_Y + 62 },
+  left: { x: CANVAS_W * 0.22, y: HORIZON_Y + 60 },
+  center: { x: CANVAS_W * 0.5, y: HORIZON_Y + 60 },
+  right: { x: CANVAS_W * 0.78, y: HORIZON_Y + 60 },
 };
 
 export function drawGoalFrame(ctx: CanvasRenderingContext2D) {
@@ -57,7 +55,7 @@ export function drawKeeper(ctx: CanvasRenderingContext2D, divDir: ShootDir | nul
   }
   ctx.save();
   ctx.translate(base.x + offX, base.y - 30 + offY);
-  ctx.rotate(divDir ? diveT * (divDir.includes("Left") ? -1 : divDir.includes("Right") ? 1 : 0) * 0.9 : 0);
+  ctx.rotate(divDir ? diveT * (divDir === "left" ? -1 : divDir === "right" ? 1 : 0) * 0.9 : 0);
   ctx.fillStyle = "#16a34a";
   ctx.beginPath();
   ctx.roundRect(-10, -16, 20, 26, 6);
@@ -70,14 +68,12 @@ export function drawKeeper(ctx: CanvasRenderingContext2D, divDir: ShootDir | nul
 }
 
 // Glyph for the swipe gesture that aims at each zone — matches SwipeInput's
-// classify5() exactly (swipe up-left -> topLeft, etc.) so the on-screen hint
-// is literally the gesture the player needs to make.
+// classify3() exactly (swipe left -> left, swipe right -> right, tap -> center)
+// so the on-screen hint is literally the gesture the player needs to make.
 const ZONE_GLYPH: Record<ShootDir, string> = {
-  topLeft: "↖",
-  topRight: "↗",
-  bottomLeft: "↙",
-  bottomRight: "↘",
+  left: "⬅",
   center: "●",
+  right: "➡",
 };
 
 export function drawTargetZones(
@@ -157,19 +153,44 @@ export function drawBall(ctx: CanvasRenderingContext2D, x: number, y: number, sc
   ctx.save();
   ctx.translate(x, y);
   ctx.scale(scale, scale);
-  ctx.fillStyle = "#fff";
+  const r = 9;
+
+  ctx.fillStyle = "#f8fafc";
   ctx.beginPath();
-  ctx.arc(0, 0, 9, 0, Math.PI * 2);
+  ctx.arc(0, 0, r, 0, Math.PI * 2);
   ctx.fill();
-  ctx.strokeStyle = "#111";
-  ctx.lineWidth = 1.2;
+  ctx.strokeStyle = "#1f2937";
+  ctx.lineWidth = 1;
   ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(-9, 0);
-  ctx.lineTo(9, 0);
-  ctx.moveTo(0, -9);
-  ctx.lineTo(0, 9);
-  ctx.stroke();
+
+  // classic pentagon-and-seams pattern so it reads as an actual soccer ball
+  // rather than a plain dot
+  const pentagon = (cx: number, cy: number, pr: number) => {
+    ctx.beginPath();
+    for (let i = 0; i < 5; i++) {
+      const angle = -Math.PI / 2 + (i / 5) * Math.PI * 2;
+      const px = cx + Math.cos(angle) * pr;
+      const py = cy + Math.sin(angle) * pr;
+      if (i === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+  };
+
+  ctx.fillStyle = "#1f2937";
+  const pr = r * 0.4;
+  pentagon(0, 0, pr);
+  ctx.fill();
+
+  ctx.strokeStyle = "#1f2937";
+  ctx.lineWidth = 1;
+  for (let i = 0; i < 5; i++) {
+    const angle = -Math.PI / 2 + (i / 5) * Math.PI * 2;
+    ctx.beginPath();
+    ctx.moveTo(Math.cos(angle) * pr, Math.sin(angle) * pr);
+    ctx.lineTo(Math.cos(angle) * r, Math.sin(angle) * r);
+    ctx.stroke();
+  }
   ctx.restore();
 }
 

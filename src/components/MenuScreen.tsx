@@ -54,7 +54,7 @@ export function MenuScreen({ persisted, onStart }: Props) {
             <li>👆 Swipe up — jump over low obstacles</li>
             <li>👇 Swipe down — slide under overhead obstacles</li>
             <li>⚔️ Breakaway: swipe left/right to beat the defender on time</li>
-            <li>🥅 Shoot: swipe toward a goal corner or center to strike</li>
+            <li>🥅 Shoot: swipe left/right to aim that side, tap to shoot center — the keeper dives on their own guess</li>
           </ul>
         </div>
       )}

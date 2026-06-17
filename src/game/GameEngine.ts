@@ -131,7 +131,7 @@ export class GameEngine {
     this.ctx = ctx;
     this.swipe = new SwipeInput(canvas);
     this.swipe.onSwipe4 = (dir) => this.handleSwipe4(dir);
-    this.swipe.onSwipe5 = (dir) => this.handleSwipe5(dir);
+    this.swipe.onSwipe3 = (dir) => this.handleSwipe3(dir);
     document.addEventListener("visibilitychange", this.handleVisibility);
   }
 
@@ -218,7 +218,7 @@ export class GameEngine {
     }
   }
 
-  private handleSwipe5(dir: ShootDir) {
+  private handleSwipe3(dir: ShootDir) {
     if (this.phase === "breakawayShoot" && !this.breakaway.shoot.chosenDir) {
       this.resolveShot(dir);
     }
@@ -450,7 +450,7 @@ export class GameEngine {
           b.beat.index += 1;
           if (b.beat.index >= b.beat.total) {
             this.setPhase("breakawayShoot");
-            this.swipe.setMode("fiveWay");
+            this.swipe.setMode("threeWay");
             this.startShootPrompt();
           } else {
             this.startBeatPrompt();
@@ -546,24 +546,23 @@ export class GameEngine {
     if (!dir) {
       b.chosenDir = "center";
       b.outcome = "miss";
-      b.keeperDir = "center";
+      b.keeperDir = this.rollKeeperDir("center", stage.keeperSkill);
       this.applyShotOutcome("miss");
       return;
     }
 
     b.chosenDir = dir;
-    const isCorner = dir === "topLeft" || dir === "topRight";
-    const baseChance = dir === "center" ? 0.68 : isCorner ? 0.46 : 0.6;
-    const momentumBonus = this.activePowerUps.momentumMode ? 0.18 : 0;
-    const skillPenalty = stage.keeperSkill * 0.4;
-    const defenderPenalty = this.defenderPenalty;
-    const chance = Math.max(0.08, Math.min(0.95, baseChance + momentumBonus - skillPenalty - defenderPenalty));
+    const isCorner = dir === "left" || dir === "right";
 
-    const success = Math.random() < chance;
-    b.keeperDir = success ? this.pickWrongZone(dir) : dir;
+    // The keeper dives on their own, independent of the player: they make a
+    // genuine random guess, just more likely to read the shot correctly the
+    // better/sharper the keeper (stage skill, lowered by a beaten defender,
+    // raised when the shooter has momentum working against the keeper).
+    b.keeperDir = this.rollKeeperDir(dir, stage.keeperSkill);
+    const saved = b.keeperDir === dir;
 
     let outcome: ShotOutcome;
-    if (!success) {
+    if (saved) {
       outcome = Math.random() < 0.25 ? "miss" : "saved";
     } else if (isCorner) {
       outcome = "topCornerGoal";
@@ -576,10 +575,15 @@ export class GameEngine {
     this.applyShotOutcome(outcome);
   }
 
-  private pickWrongZone(chosen: ShootDir): ShootDir {
-    const others: ShootDir[] = ["topLeft", "topRight", "bottomLeft", "bottomRight", "center"].filter(
-      (z) => z !== chosen,
-    ) as ShootDir[];
+  // Independent random pick for the keeper's dive: a weighted coin flip on
+  // whether they guess the actual shot direction, then a uniform pick among
+  // the remaining zones otherwise — so the keeper truly chooses on its own,
+  // not by reverse-engineering a precomputed hit/miss roll.
+  private rollKeeperDir(shotDir: ShootDir, keeperSkill: number): ShootDir {
+    const momentumPenalty = this.activePowerUps.momentumMode ? 0.18 : 0;
+    const readChance = Math.max(0.12, Math.min(0.78, 0.3 + keeperSkill * 0.4 - this.defenderPenalty - momentumPenalty));
+    if (Math.random() < readChance) return shotDir;
+    const others = (["left", "center", "right"] as ShootDir[]).filter((z) => z !== shotDir);
     return others[Math.floor(Math.random() * others.length)];
   }
 
@@ -732,7 +736,7 @@ export class GameEngine {
       drawInstructionBanner(ctx, "DEFENDER CLOSING IN!", "Swipe ⬅️ or ➡️ to match the lit side");
       drawCountdownBar(ctx, Math.max(0, b.beat.windowT / b.beat.windowMax));
     } else if (this.phase === "breakawayShoot" && !b.shoot.chosenDir) {
-      drawInstructionBanner(ctx, "TAKE THE SHOT!", "Swipe toward a glowing corner to aim there");
+      drawInstructionBanner(ctx, "TAKE THE SHOT!", "Swipe ⬅️/➡️ to pick a side, or tap to shoot center");
       drawCountdownBar(ctx, Math.max(0, b.shoot.windowT / b.shoot.windowMax));
     }
 

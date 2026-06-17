@@ -1,6 +1,6 @@
 export type SwipeDir = "left" | "right" | "up" | "down";
 
-export type ShootDir = "topLeft" | "topRight" | "bottomLeft" | "bottomRight" | "center";
+export type ShootDir = "left" | "center" | "right";
 
 export type GamePhase =
   | "menu"
