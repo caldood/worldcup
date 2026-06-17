@@ -1,7 +1,22 @@
 // Lightweight synthesized SFX so the game has audio feedback without shipping audio assets.
+
+// Cheerful four-chord vamp (C - G - Am - F), each entry is [bass note, triad...] in Hz.
+const MUSIC_CHORDS: number[][] = [
+  [130.81, 130.81, 164.81, 196.0], // C major
+  [98.0, 98.0, 123.47, 146.83], // G major
+  [110.0, 110.0, 130.81, 164.81], // A minor
+  [87.31, 87.31, 110.0, 130.81], // F major
+];
+
 class AudioManager {
   private ctx: AudioContext | null = null;
   private muted = false;
+
+  private musicPlaying = false;
+  private musicChordIndex = 0;
+  private musicTimer: number | null = null;
+
+  private crowdNoise: AudioBufferSourceNode | null = null;
 
   private ensureCtx(): AudioContext | null {
     if (this.muted) return null;
@@ -16,6 +31,10 @@ class AudioManager {
 
   setMuted(m: boolean) {
     this.muted = m;
+    if (m) {
+      this.stopMusic();
+      this.stopCrowdAmbience();
+    }
   }
 
   private tone(freq: number, duration: number, type: OscillatorType = "sine", gain = 0.15, delay = 0) {
@@ -81,14 +100,17 @@ class AudioManager {
     this.tone(180, 0.4, "sawtooth", 0.12, 0.1);
   }
 
-  crowdRoar() {
+  // Crowd cheer swell. intensity scales duration/volume: 0.5 for a routine goal, 1 for a big moment.
+  crowdRoar(intensity = 1) {
     const ctx = this.ensureCtx();
     if (!ctx) return;
-    const bufferSize = ctx.sampleRate * 1.2;
+    const duration = 0.7 + intensity * 0.8;
+    const bufferSize = ctx.sampleRate * duration;
     const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
     const data = buffer.getChannelData(0);
     for (let i = 0; i < bufferSize; i++) {
-      data[i] = (Math.random() * 2 - 1) * Math.exp(-i / bufferSize);
+      const rise = Math.min(1, (i / bufferSize) * 6);
+      data[i] = (Math.random() * 2 - 1) * rise * Math.exp(-i / (bufferSize * 0.8));
     }
     const noise = ctx.createBufferSource();
     noise.buffer = buffer;
@@ -97,11 +119,86 @@ class AudioManager {
     filter.frequency.value = 900;
     filter.Q.value = 0.7;
     const g = ctx.createGain();
-    g.gain.value = 0.25;
+    g.gain.value = 0.15 + 0.2 * intensity;
     noise.connect(filter);
     filter.connect(g);
     g.connect(ctx.destination);
     noise.start();
+  }
+
+  // Continuous low stadium murmur — meant to run for the whole match.
+  startCrowdAmbience() {
+    if (this.crowdNoise) return;
+    const ctx = this.ensureCtx();
+    if (!ctx) return;
+    const bufferSize = ctx.sampleRate * 2;
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = Math.random() * 2 - 1;
+    }
+    const noise = ctx.createBufferSource();
+    noise.buffer = buffer;
+    noise.loop = true;
+    const filter = ctx.createBiquadFilter();
+    filter.type = "bandpass";
+    filter.frequency.value = 650;
+    filter.Q.value = 0.5;
+    const g = ctx.createGain();
+    g.gain.value = 0.035;
+    noise.connect(filter);
+    filter.connect(g);
+    g.connect(ctx.destination);
+    noise.start();
+    this.crowdNoise = noise;
+  }
+
+  stopCrowdAmbience() {
+    if (!this.crowdNoise) return;
+    try {
+      this.crowdNoise.stop();
+    } catch {
+      // already stopped
+    }
+    this.crowdNoise.disconnect();
+    this.crowdNoise = null;
+  }
+
+  // Procedurally looped background music — a soft chord vamp under the SFX.
+  startMusic() {
+    if (this.musicPlaying) return;
+    const ctx = this.ensureCtx();
+    if (!ctx) return;
+    this.musicPlaying = true;
+    this.musicChordIndex = 0;
+    this.playMusicStep();
+  }
+
+  stopMusic() {
+    this.musicPlaying = false;
+    if (this.musicTimer !== null) {
+      window.clearTimeout(this.musicTimer);
+      this.musicTimer = null;
+    }
+  }
+
+  private playMusicStep() {
+    if (!this.musicPlaying) return;
+    const ctx = this.ensureCtx();
+    if (!ctx) {
+      this.musicPlaying = false;
+      return;
+    }
+    const [bass, ...triad] = MUSIC_CHORDS[this.musicChordIndex % MUSIC_CHORDS.length];
+    const beat = 0.5;
+    for (let b = 0; b < 4; b++) {
+      this.tone(bass, beat * 0.55, "triangle", 0.05, b * beat);
+    }
+    for (const f of triad) {
+      this.tone(f, beat * 4 * 0.95, "sine", 0.022, 0);
+    }
+    this.musicChordIndex++;
+    this.musicTimer = window.setTimeout(() => this.playMusicStep(), beat * 4 * 1000);
   }
 }
 

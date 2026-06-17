@@ -169,6 +169,8 @@ export class GameEngine {
     this.cameraZoom = 1;
     this.nextBreakawayAt = BREAKAWAY_MIN_DISTANCE + Math.random() * (BREAKAWAY_MAX_DISTANCE - BREAKAWAY_MIN_DISTANCE);
     this.matchWonToast = null;
+    audio.startMusic();
+    audio.startCrowdAmbience();
     this.setPhase("runner");
     this.swipe.setMode("fourWay");
   }
@@ -407,6 +409,7 @@ export class GameEngine {
     } else {
       this.matchWonToast = "WORLD CHAMPION FORM! Keep going for glory.";
     }
+    audio.crowdRoar(1);
     saveState(this.persisted);
     this.particles.addText(CANVAS_W / 2, CANVAS_H * 0.3, "MATCH WON!", "#facc15", 26);
     void stage;
@@ -587,6 +590,7 @@ export class GameEngine {
       this.goalsThisRun += 1;
       this.persisted.totalGoals += 1;
       audio.goal(false);
+      audio.crowdRoar(0.5);
       this.particles.burstConfetti(CANVAS_W / 2, CANVAS_H * 0.35, 40);
     } else if (outcome === "greatGoal") {
       this.score += 900 * this.multiplier * mult;
@@ -595,6 +599,7 @@ export class GameEngine {
       this.persisted.totalGoals += 1;
       this.multiplier = Math.min(10, this.multiplier + 0.25);
       audio.goal(false);
+      audio.crowdRoar(0.7);
       this.particles.burstConfetti(CANVAS_W / 2, CANVAS_H * 0.35, 55);
     } else if (outcome === "topCornerGoal") {
       this.score += 1800 * this.multiplier * mult;
@@ -605,7 +610,7 @@ export class GameEngine {
       this.persisted.totalTopCorners += 1;
       this.multiplier = Math.min(10, this.multiplier + 1);
       audio.goal(true);
-      audio.crowdRoar();
+      audio.crowdRoar(1);
       this.particles.burstConfetti(CANVAS_W / 2, CANVAS_H * 0.32, 100);
     } else if (outcome === "saved") {
       audio.miss();
@@ -621,6 +626,8 @@ export class GameEngine {
   // ---------------- GAME OVER ----------------
 
   private gameOver() {
+    audio.stopMusic();
+    audio.stopCrowdAmbience();
     this.persisted.runsWithoutCorrection = Math.max(this.persisted.runsWithoutCorrection, this.distanceSinceCorrection);
     this.persisted.bestDistance = Math.max(this.persisted.bestDistance, Math.floor(this.distance));
     const isNewBest = this.score > this.persisted.bestScore;
@@ -648,6 +655,7 @@ export class GameEngine {
     if (newAchievements.length) {
       this.persisted.unlockedAchievements.push(...newAchievements.map((a) => a.id));
       saveState(this.persisted);
+      audio.crowdRoar(0.4);
       newAchievements.forEach((a) => this.listeners.onAchievement?.(a));
     }
 
