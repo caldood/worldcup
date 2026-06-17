@@ -70,6 +70,12 @@ class AudioManager {
     notes.forEach((f, i) => this.tone(f, 0.22, "triangle", 0.16, i * 0.09));
   }
 
+  trophy() {
+    this.tone(784, 0.12, "triangle", 0.14);
+    this.tone(988, 0.12, "triangle", 0.14, 0.08);
+    this.tone(1318, 0.2, "triangle", 0.16, 0.16);
+  }
+
   miss() {
     this.tone(300, 0.3, "sawtooth", 0.15);
     this.tone(180, 0.4, "sawtooth", 0.12, 0.1);

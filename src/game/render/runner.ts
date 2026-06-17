@@ -1,6 +1,6 @@
 import type { Player } from "../player";
-import type { RunnerEntity } from "../types";
-import { COLLECTIBLE_ICON, OBSTACLE_ICON, POWERUP_ICON } from "./icons";
+import type { ObstacleKind, RunnerEntity } from "../types";
+import { COLLECTIBLE_ICON, OBSTACLE_ACTION, OBSTACLE_COLOR, OBSTACLE_ICON, POWERUP_ICON } from "./icons";
 import { laneScreenX } from "./perspective";
 
 function iconFor(e: RunnerEntity): string {
@@ -21,14 +21,55 @@ export function drawEntities(ctx: CanvasRenderingContext2D, entities: RunnerEnti
     ctx.globalAlpha = Math.max(0.15, scale);
     if (e.hit) ctx.globalAlpha *= 0.3;
 
-    // contact shadow
-    ctx.save();
-    ctx.globalAlpha *= 0.35;
-    ctx.fillStyle = "#000";
-    ctx.beginPath();
-    ctx.ellipse(x, y + 4, size * 0.32, size * 0.12, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
+    if (e.type === "obstacle") {
+      const color = OBSTACLE_COLOR[e.kind as ObstacleKind];
+      const close = scale > 0.55;
+
+      // ground marker ring, pulses faster and brighter the closer the obstacle gets
+      ctx.save();
+      const pulse = close ? 0.55 + Math.sin(t * 14) * 0.35 : 0.4;
+      ctx.globalAlpha *= pulse;
+      ctx.strokeStyle = color;
+      ctx.lineWidth = close ? 3.5 : 2;
+      ctx.beginPath();
+      ctx.ellipse(x, y + 6, size * 0.46, size * 0.16, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+
+      // colored danger halo behind the icon for instant kind recognition
+      ctx.save();
+      ctx.globalAlpha *= 0.45;
+      const halo = ctx.createRadialGradient(x, y - size * 0.32, 0, x, y - size * 0.32, size * 0.75);
+      halo.addColorStop(0, color + "cc");
+      halo.addColorStop(1, color + "00");
+      ctx.fillStyle = halo;
+      ctx.beginPath();
+      ctx.arc(x, y - size * 0.32, size * 0.75, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      // action-hint arrow telling the player what input clears this obstacle
+      const action = OBSTACLE_ACTION[e.kind as ObstacleKind];
+      if (close && action !== "dodge") {
+        ctx.save();
+        ctx.globalAlpha *= 0.85;
+        ctx.fillStyle = color;
+        ctx.font = `${size * 0.4}px sans-serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(action === "jump" ? "▲" : "▼", x, y - size * 1.05);
+        ctx.restore();
+      }
+    } else {
+      // contact shadow
+      ctx.save();
+      ctx.globalAlpha *= 0.35;
+      ctx.fillStyle = "#000";
+      ctx.beginPath();
+      ctx.ellipse(x, y + 4, size * 0.32, size * 0.12, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
 
     if (e.type === "powerup") {
       ctx.save();

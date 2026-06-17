@@ -19,6 +19,7 @@ export function GameOverScreen({ result, onRetry, onMenu }: Props) {
         <Result label="Alpha" value={`💎${result.alpha}`} />
         <Result label="Goals" value={`⚽${result.goals}`} />
         <Result label="Top Corners" value={`🎯${result.topCorners}`} />
+        <Result label="Trophies" value={`🏆${result.trophies}`} />
       </div>
       <button className="btn btn-primary" onClick={onRetry}>
         ▶ Play Again

@@ -30,12 +30,51 @@ function getCrowdDots(): CrowdDot[] {
   return crowdDots;
 }
 
+function drawClouds(ctx: CanvasRenderingContext2D, t: number) {
+  ctx.save();
+  ctx.fillStyle = "rgba(255,255,255,0.75)";
+  const clouds = [
+    { speed: 4, y: HORIZON_Y * 0.3, scale: 1, offset: 0 },
+    { speed: 2.6, y: HORIZON_Y * 0.55, scale: 0.7, offset: 0.4 },
+    { speed: 3.4, y: HORIZON_Y * 0.15, scale: 0.85, offset: 0.75 },
+  ];
+  for (const c of clouds) {
+    const span = CANVAS_W + 140;
+    const x = (((t * c.speed + c.offset * span) % span) + span) % span - 70;
+    ctx.beginPath();
+    ctx.ellipse(x, c.y, 26 * c.scale, 12 * c.scale, 0, 0, Math.PI * 2);
+    ctx.ellipse(x + 18 * c.scale, c.y - 5 * c.scale, 18 * c.scale, 10 * c.scale, 0, 0, Math.PI * 2);
+    ctx.ellipse(x - 18 * c.scale, c.y - 3 * c.scale, 16 * c.scale, 9 * c.scale, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+export function drawVignette(ctx: CanvasRenderingContext2D) {
+  ctx.save();
+  const vignette = ctx.createRadialGradient(
+    CANVAS_W / 2,
+    CANVAS_H * 0.45,
+    CANVAS_H * 0.35,
+    CANVAS_W / 2,
+    CANVAS_H * 0.45,
+    CANVAS_H * 0.75,
+  );
+  vignette.addColorStop(0, "rgba(0,0,0,0)");
+  vignette.addColorStop(1, "rgba(0,0,0,0.38)");
+  ctx.fillStyle = vignette;
+  ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+  ctx.restore();
+}
+
 export function drawStadiumBackground(ctx: CanvasRenderingContext2D, t: number, flash: number) {
   const sky = ctx.createLinearGradient(0, 0, 0, HORIZON_Y + 40);
   sky.addColorStop(0, "#3fa9f5");
   sky.addColorStop(1, "#bfe3ff");
   ctx.fillStyle = sky;
   ctx.fillRect(0, 0, CANVAS_W, HORIZON_Y + 40);
+
+  drawClouds(ctx, t);
 
   // floodlight glow flicker
   ctx.save();

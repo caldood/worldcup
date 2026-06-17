@@ -37,6 +37,12 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     description: "Run 2000m in a single match without a Market Correction.",
     check: (s) => s.runsWithoutCorrection >= 2000,
   },
+  {
+    id: "trophyCabinet",
+    name: "Trophy Cabinet",
+    description: "Collect 15 Trophies.",
+    check: (s) => s.totalTrophies >= 15,
+  },
 ];
 
 export function checkNewAchievements(stats: ProgressionStats, unlocked: string[]): AchievementDef[] {

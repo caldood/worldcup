@@ -30,7 +30,7 @@ export type PowerUpKind =
   | "momentumMode"
   | "hatTrick";
 
-export type CollectibleKind = "capital" | "alpha";
+export type CollectibleKind = "capital" | "alpha" | "jersey" | "trophy";
 
 export interface Lane {
   index: 0 | 1 | 2;
@@ -63,6 +63,7 @@ export interface ProgressionStats {
   totalAlpha: number;
   totalGoals: number;
   totalTopCorners: number;
+  totalTrophies: number;
   bestDistance: number;
   bestScore: number;
   bestMultiplier: number;
@@ -81,6 +82,7 @@ export interface PersistedState {
   totalAlpha: number;
   totalGoals: number;
   totalTopCorners: number;
+  totalTrophies: number;
   matchesWon: number;
   correctionsTaken: number;
   runsWithoutCorrection: number;

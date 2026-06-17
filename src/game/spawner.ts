@@ -45,15 +45,19 @@ export class Spawner {
     const roll = Math.random();
     const entities: RunnerEntity[] = [];
 
-    if (roll < 0.08) {
+    if (roll < 0.07) {
       // collectible row: coins across multiple lanes
       const lanes = Math.random() < 0.5 ? [0, 1, 2] : [1];
       for (const lane of lanes) {
         entities.push(this.makeEntity(lane as 0 | 1 | 2, "collectible", "capital"));
       }
     } else if (roll < 0.1) {
+      entities.push(this.makeEntity(this.randomLane(), "collectible", "jersey"));
+    } else if (roll < 0.115) {
       entities.push(this.makeEntity(this.randomLane(), "collectible", "alpha"));
-    } else if (roll < 0.1 + 0.06 * density) {
+    } else if (roll < 0.125) {
+      entities.push(this.makeEntity(this.randomLane(), "collectible", "trophy"));
+    } else if (roll < 0.125 + 0.06 * density) {
       entities.push(this.makeEntity(this.randomLane(), "powerup", POWER_UP_KINDS[Math.floor(Math.random() * POWER_UP_KINDS.length)]));
     } else {
       const blockedLanes = new Set<number>();

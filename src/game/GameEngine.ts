@@ -14,7 +14,7 @@ import {
 import { SwipeInput } from "./input/SwipeInput";
 import { ParticleSystem } from "./particles";
 import { Player } from "./player";
-import { drawStadiumBackground } from "./render/background";
+import { drawStadiumBackground, drawVignette } from "./render/background";
 import {
   drawBall,
   drawDefenderDuel,
@@ -65,6 +65,7 @@ export interface MatchResult {
   distance: number;
   goals: number;
   topCorners: number;
+  trophies: number;
   isNewBest: boolean;
   wonMatch: boolean;
   stageName: string;
@@ -104,6 +105,7 @@ export class GameEngine {
   alpha = 0;
   goalsThisRun = 0;
   topCornersThisRun = 0;
+  trophiesThisRun = 0;
   multiplier = 1;
   momentumStreak = 0;
   lives = 3;
@@ -155,6 +157,7 @@ export class GameEngine {
     this.alpha = 0;
     this.goalsThisRun = 0;
     this.topCornersThisRun = 0;
+    this.trophiesThisRun = 0;
     this.multiplier = 1;
     this.momentumStreak = 0;
     this.lives = 3;
@@ -270,7 +273,9 @@ export class GameEngine {
       if (e.type === "collectible") {
         e.hit = true;
         if (e.kind === "capital") this.collectCapital();
-        else this.collectAlpha();
+        else if (e.kind === "alpha") this.collectAlpha();
+        else if (e.kind === "jersey") this.collectJersey();
+        else this.collectTrophy();
       } else if (e.type === "powerup") {
         e.hit = true;
         this.activatePowerUp(e.kind as PowerUpKind);
@@ -351,6 +356,28 @@ export class GameEngine {
     this.particles.addText(this.player.x, this.player.y - 80, "+ALPHA", "#a78bfa", 16);
   }
 
+  private collectJersey() {
+    audio.coin();
+    const base = 30;
+    const mult = this.activePowerUps.hatTrick ? 3 : 1;
+    this.capital += base;
+    this.score += base * this.multiplier * mult;
+    this.persisted.totalCapital += base;
+    this.particles.burstSparks(this.player.x, this.player.y - 40, "#fbbf24", 14);
+    this.particles.addText(this.player.x, this.player.y - 80, "+JERSEY", "#fbbf24", 16);
+  }
+
+  private collectTrophy() {
+    audio.trophy();
+    this.trophiesThisRun += 1;
+    this.persisted.totalTrophies += 1;
+    const mult = this.activePowerUps.hatTrick ? 3 : 1;
+    this.score += 250 * this.multiplier * mult;
+    this.capital += 50;
+    this.particles.burstConfetti(this.player.x, this.player.y - 40, 24);
+    this.particles.addText(this.player.x, this.player.y - 80, "+TROPHY", "#facc15", 18);
+  }
+
   private activatePowerUp(kind: PowerUpKind) {
     audio.powerup();
     this.activePowerUps[kind] = POWER_UP_DURATIONS[kind];
@@ -406,6 +433,7 @@ export class GameEngine {
           b.beat.index += 1;
           if (b.beat.index >= b.beat.total) {
             this.setPhase("breakawayShoot");
+            this.swipe.setMode("fiveWay");
             this.startShootPrompt();
           } else {
             this.startBeatPrompt();
@@ -594,6 +622,7 @@ export class GameEngine {
         totalAlpha: this.persisted.totalAlpha,
         totalGoals: this.persisted.totalGoals,
         totalTopCorners: this.persisted.totalTopCorners,
+        totalTrophies: this.persisted.totalTrophies,
         bestDistance: this.persisted.bestDistance,
         bestScore: this.persisted.bestScore,
         bestMultiplier: this.persisted.bestMultiplier,
@@ -618,6 +647,7 @@ export class GameEngine {
       distance: Math.floor(this.distance),
       goals: this.goalsThisRun,
       topCorners: this.topCornersThisRun,
+      trophies: this.trophiesThisRun,
       isNewBest,
       wonMatch: !!this.matchWonToast,
       stageName: getStage(this.stageIndexAtStart).name,
@@ -673,6 +703,7 @@ export class GameEngine {
     ctx.restore();
 
     this.particles.draw(ctx);
+    drawVignette(ctx);
     ctx.restore();
   }
 

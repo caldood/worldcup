@@ -10,6 +10,7 @@ const DEFAULT_STATE: PersistedState = {
   totalAlpha: 0,
   totalGoals: 0,
   totalTopCorners: 0,
+  totalTrophies: 0,
   matchesWon: 0,
   correctionsTaken: 0,
   runsWithoutCorrection: 0,
