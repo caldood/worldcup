@@ -9,6 +9,22 @@ function iconFor(e: RunnerEntity): string {
   return COLLECTIBLE_ICON[e.kind as keyof typeof COLLECTIBLE_ICON];
 }
 
+// Stop-sign silhouette so danger reads as a shape, not just a color, even for
+// players who can't distinguish the hue.
+function octagonPath(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number) {
+  ctx.beginPath();
+  for (let i = 0; i < 8; i++) {
+    const angle = Math.PI / 8 + (i / 8) * Math.PI * 2;
+    const px = cx + Math.cos(angle) * r;
+    const py = cy + Math.sin(angle) * r;
+    if (i === 0) ctx.moveTo(px, py);
+    else ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+}
+
+const ACTION_GLYPH: Record<string, string> = { jump: "▲", slide: "▼", dodge: "↔" };
+
 export function drawEntities(ctx: CanvasRenderingContext2D, entities: RunnerEntity[], t: number) {
   const sorted = [...entities].sort((a, b) => b.z - a.z);
   for (const e of sorted) {
@@ -16,6 +32,7 @@ export function drawEntities(ctx: CanvasRenderingContext2D, entities: RunnerEnti
     const bob = e.type === "collectible" ? Math.sin(t * 6 + e.bobPhase) * 6 * scale : 0;
     const baseSize = e.type === "obstacle" ? 44 : e.type === "powerup" ? 38 : 30;
     const size = baseSize * scale;
+    const grabbable = e.type === "collectible" || e.type === "powerup";
 
     ctx.save();
     // Obstacles get a much higher visibility floor than collectibles so they
@@ -27,36 +44,34 @@ export function drawEntities(ctx: CanvasRenderingContext2D, entities: RunnerEnti
       const color = OBSTACLE_COLOR[e.kind as ObstacleKind];
       const close = scale > 0.55;
 
-      // ground marker ring, pulses faster and brighter the closer the obstacle gets
+      // hazard-tape ground ring: bright red outer band (universal "stop"
+      // signal) with a thin kind-colored inner band for identification
       ctx.save();
       const pulse = close ? 0.65 + Math.sin(t * 14) * 0.35 : 0.5;
       ctx.globalAlpha *= pulse;
-      ctx.strokeStyle = "#ffffff";
-      ctx.lineWidth = close ? 5.5 : 3.5;
+      ctx.strokeStyle = "#ef4444";
+      ctx.lineWidth = close ? 6 : 4;
       ctx.beginPath();
-      ctx.ellipse(x, y + 6, size * 0.46, size * 0.16, 0, 0, Math.PI * 2);
+      ctx.ellipse(x, y + 6, size * 0.48, size * 0.17, 0, 0, Math.PI * 2);
       ctx.stroke();
       ctx.strokeStyle = color;
-      ctx.lineWidth = close ? 3.5 : 2;
+      ctx.lineWidth = close ? 3 : 1.8;
       ctx.beginPath();
-      ctx.ellipse(x, y + 6, size * 0.46, size * 0.16, 0, 0, Math.PI * 2);
+      ctx.ellipse(x, y + 6, size * 0.48, size * 0.17, 0, 0, Math.PI * 2);
       ctx.stroke();
       ctx.restore();
 
-      // opaque road-sign badge behind the icon: solid color disc framed by a
-      // dark ring then a white ring, so it pops against the green pitch no
-      // matter what color the emoji itself happens to render in.
+      // opaque stop-sign badge behind the icon: solid color octagon framed
+      // by a dark ring then a white ring, so the danger shape and color both
+      // pop against the green pitch no matter what color the emoji renders in
       ctx.save();
-      ctx.beginPath();
-      ctx.arc(x, y - size * 0.32, size * 0.62, 0, Math.PI * 2);
+      octagonPath(ctx, x, y - size * 0.32, size * 0.64);
       ctx.fillStyle = "#111827";
       ctx.fill();
-      ctx.beginPath();
-      ctx.arc(x, y - size * 0.32, size * 0.54, 0, Math.PI * 2);
+      octagonPath(ctx, x, y - size * 0.32, size * 0.55);
       ctx.fillStyle = "#ffffff";
       ctx.fill();
-      ctx.beginPath();
-      ctx.arc(x, y - size * 0.32, size * 0.46, 0, Math.PI * 2);
+      octagonPath(ctx, x, y - size * 0.32, size * 0.47);
       ctx.fillStyle = color;
       ctx.fill();
       ctx.restore();
@@ -64,7 +79,7 @@ export function drawEntities(ctx: CanvasRenderingContext2D, entities: RunnerEnti
       // soft outer glow on top for extra pop without washing out the badge
       ctx.save();
       ctx.globalAlpha *= 0.5;
-      const halo = ctx.createRadialGradient(x, y - size * 0.32, size * 0.46, x, y - size * 0.32, size * 0.95);
+      const halo = ctx.createRadialGradient(x, y - size * 0.32, size * 0.47, x, y - size * 0.32, size * 0.95);
       halo.addColorStop(0, color + "aa");
       halo.addColorStop(1, color + "00");
       ctx.fillStyle = halo;
@@ -73,16 +88,30 @@ export function drawEntities(ctx: CanvasRenderingContext2D, entities: RunnerEnti
       ctx.fill();
       ctx.restore();
 
-      // action-hint arrow telling the player what input clears this obstacle
-      const action = OBSTACLE_ACTION[e.kind as ObstacleKind];
-      if (close && action !== "dodge") {
+      // small warning badge in the corner — an unmistakable, color-blind-safe
+      // "avoid" cue independent of the kind-specific icon
+      if (scale > 0.3) {
         ctx.save();
-        ctx.globalAlpha *= 0.85;
-        ctx.fillStyle = color;
         ctx.font = `${size * 0.4}px sans-serif`;
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        ctx.fillText(action === "jump" ? "▲" : "▼", x, y - size * 1.05);
+        ctx.fillText("⚠️", x + size * 0.42, y - size * 0.78);
+        ctx.restore();
+      }
+
+      // action-hint glyph telling the player what input clears this obstacle
+      const action = OBSTACLE_ACTION[e.kind as ObstacleKind];
+      if (close) {
+        ctx.save();
+        ctx.globalAlpha *= 0.9;
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = "#111827";
+        ctx.fillStyle = "#ffffff";
+        ctx.font = `bold ${size * 0.42}px sans-serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.strokeText(ACTION_GLYPH[action], x, y - size * 1.05);
+        ctx.fillText(ACTION_GLYPH[action], x, y - size * 1.05);
         ctx.restore();
       }
     } else {
@@ -93,6 +122,35 @@ export function drawEntities(ctx: CanvasRenderingContext2D, entities: RunnerEnti
       ctx.beginPath();
       ctx.ellipse(x, y + 4, size * 0.32, size * 0.12, 0, 0, Math.PI * 2);
       ctx.fill();
+      ctx.restore();
+    }
+
+    if (grabbable) {
+      // welcoming ground ring: green pulse, the inviting opposite of the
+      // obstacles' red hazard tape, so "safe to grab" reads instantly
+      ctx.save();
+      ctx.globalAlpha *= 0.5 + Math.sin(t * 6 + e.bobPhase) * 0.2;
+      ctx.strokeStyle = "#4ade80";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.ellipse(x, y + 4, size * 0.4, size * 0.14, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+
+      // orbiting sparkle glints to make pickups feel valuable and alive
+      ctx.save();
+      ctx.fillStyle = "#fff7c2";
+      for (let i = 0; i < 3; i++) {
+        const angle = t * 2.5 + (i / 3) * Math.PI * 2 + e.bobPhase;
+        const sx = x + Math.cos(angle) * size * 0.62;
+        const sy = y - size * 0.3 + Math.sin(angle) * size * 0.42;
+        const twinkle = Math.max(0, Math.sin(t * 5 + i * 2));
+        ctx.globalAlpha = twinkle * 0.8;
+        ctx.font = `${size * 0.22}px sans-serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("✦", sx, sy);
+      }
       ctx.restore();
     }
 
