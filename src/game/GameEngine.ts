@@ -275,6 +275,7 @@ export class GameEngine {
         if (e.kind === "capital") this.collectCapital();
         else if (e.kind === "alpha") this.collectAlpha();
         else if (e.kind === "jersey") this.collectJersey();
+        else if (e.kind === "ball") this.collectBall();
         else this.collectTrophy();
       } else if (e.type === "powerup") {
         e.hit = true;
@@ -365,6 +366,17 @@ export class GameEngine {
     this.persisted.totalCapital += base;
     this.particles.burstSparks(this.player.x, this.player.y - 40, "#fbbf24", 14);
     this.particles.addText(this.player.x, this.player.y - 80, "+JERSEY", "#fbbf24", 16);
+  }
+
+  private collectBall() {
+    audio.coin();
+    const base = 15;
+    const mult = this.activePowerUps.hatTrick ? 3 : 1;
+    this.capital += base;
+    this.score += base * this.multiplier * mult;
+    this.persisted.totalCapital += base;
+    this.particles.burstSparks(this.player.x, this.player.y - 40, "#4ade80", 12);
+    this.particles.addText(this.player.x, this.player.y - 80, "+BALL", "#4ade80", 14);
   }
 
   private collectTrophy() {

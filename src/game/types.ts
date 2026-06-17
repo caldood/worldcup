@@ -30,7 +30,7 @@ export type PowerUpKind =
   | "momentumMode"
   | "hatTrick";
 
-export type CollectibleKind = "capital" | "alpha" | "jersey" | "trophy";
+export type CollectibleKind = "capital" | "alpha" | "jersey" | "trophy" | "ball";
 
 export interface Lane {
   index: 0 | 1 | 2;

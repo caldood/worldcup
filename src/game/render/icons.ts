@@ -52,6 +52,17 @@ export const COLLECTIBLE_ICON: Record<CollectibleKind, string> = {
   alpha: "💎",
   jersey: "👕",
   trophy: "🏆",
+  ball: "⚽",
+};
+
+// Tint for the soft glow drawn behind each collectible so pickups read as
+// inviting/grabbable at a glance, distinct from the danger-coded obstacles.
+export const COLLECTIBLE_COLOR: Record<CollectibleKind, string> = {
+  capital: "#fbbf24",
+  alpha: "#a78bfa",
+  jersey: "#fbbf24",
+  trophy: "#facc15",
+  ball: "#4ade80",
 };
 
 // Low obstacles can be cleared by jumping; everything else must be dodged by changing lanes.

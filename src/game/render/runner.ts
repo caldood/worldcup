@@ -1,6 +1,6 @@
 import type { Player } from "../player";
-import type { ObstacleKind, RunnerEntity } from "../types";
-import { COLLECTIBLE_ICON, OBSTACLE_ACTION, OBSTACLE_COLOR, OBSTACLE_ICON, POWERUP_ICON } from "./icons";
+import type { CollectibleKind, ObstacleKind, RunnerEntity } from "../types";
+import { COLLECTIBLE_COLOR, COLLECTIBLE_ICON, OBSTACLE_ACTION, OBSTACLE_COLOR, OBSTACLE_ICON, POWERUP_ICON } from "./icons";
 import { laneScreenX } from "./perspective";
 
 function iconFor(e: RunnerEntity): string {
@@ -18,7 +18,9 @@ export function drawEntities(ctx: CanvasRenderingContext2D, entities: RunnerEnti
     const size = baseSize * scale;
 
     ctx.save();
-    ctx.globalAlpha = Math.max(0.15, scale);
+    // Obstacles get a much higher visibility floor than collectibles so they
+    // read clearly from a distance, giving the player real reaction time.
+    ctx.globalAlpha = e.type === "obstacle" ? Math.max(0.55, scale) : Math.max(0.15, scale);
     if (e.hit) ctx.globalAlpha *= 0.3;
 
     if (e.type === "obstacle") {
@@ -41,16 +43,33 @@ export function drawEntities(ctx: CanvasRenderingContext2D, entities: RunnerEnti
       ctx.stroke();
       ctx.restore();
 
-      // colored danger halo behind the icon for instant kind recognition
+      // opaque road-sign badge behind the icon: solid color disc framed by a
+      // dark ring then a white ring, so it pops against the green pitch no
+      // matter what color the emoji itself happens to render in.
       ctx.save();
-      ctx.globalAlpha *= 0.6;
-      const halo = ctx.createRadialGradient(x, y - size * 0.32, 0, x, y - size * 0.32, size * 0.8);
-      halo.addColorStop(0, color + "ee");
-      halo.addColorStop(0.55, color + "88");
+      ctx.beginPath();
+      ctx.arc(x, y - size * 0.32, size * 0.62, 0, Math.PI * 2);
+      ctx.fillStyle = "#111827";
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(x, y - size * 0.32, size * 0.54, 0, Math.PI * 2);
+      ctx.fillStyle = "#ffffff";
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(x, y - size * 0.32, size * 0.46, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.fill();
+      ctx.restore();
+
+      // soft outer glow on top for extra pop without washing out the badge
+      ctx.save();
+      ctx.globalAlpha *= 0.5;
+      const halo = ctx.createRadialGradient(x, y - size * 0.32, size * 0.46, x, y - size * 0.32, size * 0.95);
+      halo.addColorStop(0, color + "aa");
       halo.addColorStop(1, color + "00");
       ctx.fillStyle = halo;
       ctx.beginPath();
-      ctx.arc(x, y - size * 0.32, size * 0.8, 0, Math.PI * 2);
+      ctx.arc(x, y - size * 0.32, size * 0.95, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
 
@@ -73,6 +92,21 @@ export function drawEntities(ctx: CanvasRenderingContext2D, entities: RunnerEnti
       ctx.fillStyle = "#000";
       ctx.beginPath();
       ctx.ellipse(x, y + 4, size * 0.32, size * 0.12, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    if (e.type === "collectible") {
+      // gentle tinted glow so pickups feel inviting and stand out from the turf
+      ctx.save();
+      ctx.globalAlpha *= 0.55 + Math.sin(t * 5 + e.bobPhase) * 0.15;
+      const glowColor = COLLECTIBLE_COLOR[e.kind as CollectibleKind];
+      const glow = ctx.createRadialGradient(x, y - size * 0.3, 0, x, y - size * 0.3, size * 0.85);
+      glow.addColorStop(0, glowColor + "cc");
+      glow.addColorStop(1, glowColor + "00");
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.arc(x, y - size * 0.3, size * 0.85, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
     }
